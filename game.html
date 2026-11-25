@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>NEON RUSH</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#070a14;color:#eef3ff;font-family:system-ui,Arial;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:14px}
+.wrap{width:min(100%,480px)}header{display:flex;align-items:center;justify-content:space-between;margin:4px 2px 12px}h1{font-size:25px;letter-spacing:3px;margin:0;color:#66f5ff;text-shadow:0 0 14px #00c9ff66}small{color:#9ba9c8;letter-spacing:1px}.stats{display:flex;justify-content:space-between;margin-bottom:9px;gap:8px}.stat{background:#11182a;border:1px solid #263550;border-radius:12px;padding:9px 13px;flex:1;text-align:center;color:#a8b7d8;font-size:12px}.stat b{display:block;color:white;font-size:18px;margin-top:2px}canvas{display:block;width:100%;height:auto;aspect-ratio:9/16;border:1px solid #20304c;border-radius:18px;background:#080d1a;touch-action:none;box-shadow:0 0 28px #00b9ff12}.controls{display:flex;gap:12px;margin-top:12px}.controls button{flex:1;border:1px solid #2d4162;border-radius:14px;background:#131d32;color:#e9f8ff;padding:16px;font-size:20px;font-weight:700;touch-action:manipulation}.controls button:active{background:#1b3654;transform:scale(.98)}.note{text-align:center;color:#8494b4;font-size:12px;margin:10px 0}.overlay{position:relative}.cover{position:absolute;inset:0;border-radius:18px;background:#050914d9;display:flex;align-items:center;justify-content:center;text-align:center;padding:22px}.cover.hidden{display:none}.panel h2{color:#68f4ff;font-size:29px;margin:0 0 6px;letter-spacing:2px}.panel p{color:#c4cee6;line-height:1.5}.panel button{background:#64f0ff;color:#06101b;border:0;border-radius:12px;padding:13px 24px;font-weight:900;font-size:16px}
+</style></head><body><div class="wrap">
+<header><h1>NEON RUSH</h1><small>ARCADE RUN</small></header>
+<div class="stats"><div class="stat">SCORE<b id="score">0</b></div><div class="stat">COINS<b id="coins">0</b></div><div class="stat">BEST<b id="best">0</b></div></div>
+<div class="overlay"><canvas id="game" width="360" height="640" aria-label="Neon Rush game area"></canvas><div class="cover" id="cover"><div class="panel"><h2 id="coverTitle">NEON RUSH</h2><p id="coverText">Switch lanes, dodge obstacles, collect coins.<br>Tap left/right or use the arrow keys.</p><button id="start">START RUN</button></div></div></div>
+<div class="controls"><button id="left" aria-label="Move left">◀</button><button id="right" aria-label="Move right">▶</button></div><p class="note">Keyboard: ← → or A/D · Mobile: buttons or tap sides</p>
+</div>
+<script>
+(()=>{
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');const W=360,H=640;const lanes=[90,180,270];let lane=1,obstacles=[],coins=[],score=0,coinCount=0,speed=3.2,spawn=0,coinSpawn=0,running=false,last=0,best=0;
+try{best=Number(localStorage.getItem('neonRushBest')||0)}catch{} document.getElementById('best').textContent=best;
+const cover=document.getElementById('cover'),title=document.getElementById('coverTitle'),txt=document.getElementById('coverText'),start=document.getElementById('start');
+function move(d){if(running)lane=Math.max(0,Math.min(2,lane+d))}
+document.getElementById('left').onclick=()=>move(-1);document.getElementById('right').onclick=()=>move(1);
+canvas.addEventListener('pointerdown',e=>{if(!running)return;let r=canvas.getBoundingClientRect();move(e.clientX<r.left+r.width/2?-1:1)});
+window.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','a','d','A','D'].includes(e.key))e.preventDefault();if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A')move(-1);if(e.key==='ArrowRight'||e.key==='d'||e.key==='D')move(1);if(!running&&e.key==='Enter')begin()});
+function reset(){lane=1;obstacles=[];coins=[];score=0;coinCount=0;speed=3.2;spawn=0;coinSpawn=0;document.getElementById('score').textContent=0;document.getElementById('coins').textContent=0}
+function begin(){reset();running=true;cover.classList.add('hidden');last=performance.now();requestAnimationFrame(loop)}start.onclick=begin;
+function road(){ctx.fillStyle='#080e1b';ctx.fillRect(0,0,W,H);ctx.fillStyle='#0b1323';ctx.fillRect(25,0,310,H);ctx.strokeStyle='#1d2c45';ctx.lineWidth=2;ctx.setLineDash([24,20]);for(let x of [135,225]){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}ctx.setLineDash([]);ctx.strokeStyle='#0d4e69';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(25,0);ctx.lineTo(25,H);ctx.moveTo(335,0);ctx.lineTo(335,H);ctx.stroke();}
+function player(){let x=lanes[lane],y=545;ctx.shadowColor='#55efff';ctx.shadowBlur=18;ctx.fillStyle='#53eaff';ctx.beginPath();ctx.roundRect(x-18,y-28,36,48,10);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#10233a';ctx.fillRect(x-10,y-17,20,10);ctx.fillStyle='#eafcff';ctx.fillRect(x-12,y+10,8,7);ctx.fillRect(x+4,y+10,8,7);}
+function drawObstacle(o){let x=lanes[o.lane],y=o.y;ctx.shadowColor='#ff397d';ctx.shadowBlur=12;ctx.fillStyle='#f4437b';ctx.beginPath();ctx.roundRect(x-23,y-24,46,48,9);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#48182e';ctx.fillRect(x-14,y-10,28,20);ctx.fillStyle='#ff8caf';ctx.fillRect(x-17,y-19,9,5);ctx.fillRect(x+8,y-19,9,5);}
+function drawCoin(c){ctx.shadowColor='#ffd95a';ctx.shadowBlur=12;ctx.strokeStyle='#ffdb58';ctx.lineWidth=5;ctx.beginPath();ctx.arc(lanes[c.lane],c.y,11,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#fff4bd';ctx.beginPath();ctx.arc(lanes[c.lane],c.y,4,0,Math.PI*2);ctx.fill();}
+function loop(t){if(!running)return;let dt=Math.min((t-last)/16.67,2);last=t;score+=Math.max(0,Math.floor(dt*speed*.45));speed=Math.min(7,speed+.0012*dt);spawn+=dt;coinSpawn+=dt;if(spawn>Math.max(32,68-speed*4)){obstacles.push({lane:Math.floor(Math.random()*3),y:-30});spawn=0}if(coinSpawn>44){coins.push({lane:Math.floor(Math.random()*3),y:-20});coinSpawn=0}
+road();obstacles.forEach(o=>o.y+=speed*dt*3.4);coins.forEach(c=>c.y+=speed*dt*3.4);obstacles=obstacles.filter(o=>o.y<H+40);coins=coins.filter(c=>c.y<H+30);
+for(const o of obstacles){drawObstacle(o);if(o.lane===lane&&o.y>500&&o.y<585){endRun();return}}
+for(let i=coins.length-1;i>=0;i--){let c=coins[i];drawCoin(c);if(c.lane===lane&&c.y>510&&c.y<580){coinCount++;coins.splice(i,1);document.getElementById('coins').textContent=coinCount}}
+player();document.getElementById('score').textContent=score;requestAnimationFrame(loop)}
+function endRun(){running=false;if(score>best){best=score;document.getElementById('best').textContent=best;try{localStorage.setItem('neonRushBest',best)}catch{}}title.textContent='RUN OVER';txt.innerHTML=`Score: <b>${score}</b> &nbsp; Coins: <b>${coinCount}</b><br>Try again and beat your best!`;start.textContent='PLAY AGAIN';cover.classList.remove('hidden')}
+// Initial idle screen background
+road();player();
+})();
+</script></body></html>
